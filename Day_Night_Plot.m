@@ -1,0 +1,80 @@
+clear,clc
+code_dir='D:\research\';
+addpath([code_dir 'Draw_Toolkit'])
+addpath([code_dir 'irfu-matlab-master/irf'])
+addpath([code_dir 'Restore_IDL/restore_idl'])
+%% restore and plot data
+
+clear, clf
+%%
+fontsize=1;
+options.left=0.09;%离左边距离
+options.right=0.95;
+options.low=0.15;
+options.high=0.95;
+options.xgap=0.04;
+options.ygap=0.08;
+%%
+alpha0_deg_Daa = 10;
+alpha0_deg_Dpp = 70;
+tresh_number = 50;%临界值
+
+d = restore_idl(['C:\Users\DELL\Desktop\wyj\rbsp_bined_chorus_l-mlt_plane_Bw']);
+Chorus_BINHIST=double(d.BW_BINHIST);
+Chorus_BW_AVGS=double(d.BW_AVGS);
+Chorus_BW_AVGS(isnan(Chorus_BW_AVGS)) = 0;
+load(['C:\Users\DELL\Desktop\wyj\Dxx_chorus_10_200kevdeg' ])
+Daa(isnan(Daa) | Chorus_BINHIST<tresh_number) = 0;
+Chorus_Daa_loss = Daa*3600.*((Chorus_BW_AVGS./10).^2);
+load(['C:\Users\DELL\Desktop\wyj\Dxx_chorus_70_200keVdeg'])
+Dpp(isnan(Dpp) | Chorus_BINHIST<tresh_number) = 0;
+Chorus_Dpp_minorr = Dpp*3600.*((Chorus_BW_AVGS./10).^2);
+MLT=double(d.BW_YCS);
+Ls=double(d.BW_XCS);
+L=Ls(Ls>3);
+
+
+t1=Chorus_Dpp_minorr;
+t1_N=t1(:,:,MLT>=18 | MLT<6); % Nightside
+t1_N(isnan(t1_N))=0;
+C_t1_N=(mean(t1_N,3));%平均
+t1_D=t1(:,:,MLT>=6 & MLT<18); % Dayside
+t1_D(isnan(t1_D))=0;
+C_t1_D=(mean(t1_D,3));
+t1(isnan(t1))=0;
+C_t1=mean(t1,3);%MLT平均
+
+t2=Chorus_Daa_loss;
+t2_N=t2(:,:,MLT>=18 | MLT<6); % Nightside
+t2_N(isnan(t2_N))=0;
+C_t2_N=mean(t2_N,3);
+t2_D=t2(:,:,MLT>=6 & MLT<18); % Dayside
+t2_D(isnan(t2_D))=0;
+C_t2_D=mean(t2_D,3);
+t2(isnan(t2))=0;
+C_t2=mean(t2,3);
+
+for i=1:3 %投掷角 Daa
+    ax(i)=my_subplot(2,3,i,options);
+    
+    semilogy(L,C_t1_N(i,Ls>3),'-b',L,C_t1_D(i,Ls>3),'-g',L,C_t1(i,Ls>3),'-r')
+     if i==1 title('AE < 100 nT','FontWeight','bold');end
+   if i==2 title('100 < AE < 500 nT','FontWeight','bold');end
+    if i==3 title('AE > 500 nT','FontWeight','bold');end
+   
+    if i==1 ylabel('\bf(<\itD_{\alpha\alpha}\rm\bf>\it / p\rm\bf^2  [h^{-1}])\rm','fontsize',13);end
+    %if i==1 ylabel('\bf(<\itD_{pp}\rm\bf>\it / p\rm\bf^2  [h^{-1}])\rm','fontsize',13);end
+    set(gca,'fontsize',10);
+   set(ax(i),'xlim',[3,6],'xtick',3:1:6,'ylim',[0.00001,1],'ytick',[0.00001,0.0001,0.001,0.01,0.1,1])
+end 
+for j=1:3 %能量 Dpp
+    ax(j)=my_subplot(2,3,3+j,options);
+   
+    semilogy(L,C_t2_N(j,Ls>3),'-b',L,C_t2_D(j,Ls>3),'-g',L,C_t2(j,Ls>3),'-r')
+    xlabel("L",'fontsize',15);
+    
+  
+   if j==1 ylabel('\bf(<\itD_{pp}\rm\bf>\it / p\rm\bf^2  [h^{-1}])\rm','fontsize',13);end
+    set(gca,'fontsize',10);
+    set(ax(j),'xlim',[3,6],'xtick',3:1:6,'ylim',[0.00001,1],'ytick',[0.00001,0.0001,0.001,0.01,0.1,1])
+end 
